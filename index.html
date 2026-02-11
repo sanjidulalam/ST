@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SATM Research Portal</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  
+  <!-- React & Babel -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #020617; /* slate-950 */
+      color: #e2e8f0; /* slate-200 */
+      overflow: hidden;
+      margin: 0;
+    }
+    .glow-blue {
+      box-shadow: 0 0 30px 5px rgba(37, 99, 235, 0.4);
+    }
+    .animate-in {
+      animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .bg-grid {
+      background-image: radial-gradient(circle at center, #1e293b 0.5px, transparent 0.5px);
+      background-size: 30px 30px;
+    }
+    .blue-accent {
+      color: #3b82f6;
+    }
+    .btn-shadow {
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+    }
+    /* Hide scrollbar but keep functionality */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* For smooth step transitions */
+    .step-exit { opacity: 0; transform: translateX(-20px); transition: all 0.3s ease; }
+    .step-enter { opacity: 0; transform: translateX(20px); transition: all 0.3s ease; }
+    .step-active { opacity: 1; transform: translateX(0); }
+  </style>
+</head>
+<body class="bg-grid">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const FORM_ACTION_URL = "https://docs.google.com/forms/d/e/1FAIpQLSe5QizV-hupWjb6GnBOxOZaMMs9z7b3n-N327oeTp9YblPqOQ/formResponse";
+    const MANUAL_URL = "https://docs.google.com/forms/d/e/1FAIpQLSe5QizV-hupWjb6GnBOxOZaMMs9z7b3n-N327oeTp9YblPqOQ/viewform?usp=header";
+
+    const ENTRY_MAP = {
+      1: 'entry.1071290361', 2: 'entry.326184573', 3: 'entry.1061016185', 4: 'entry.1666183569', 5: 'entry.1443380532',
+      6: 'entry.1618713911', 7: 'entry.1129971170', 8: 'entry.314606889', 9: 'entry.1660632923', 10: 'entry.1145664182',
+      11: 'entry.251814733', 12: 'entry.1813740654', 13: 'entry.1518143852', 14: 'entry.725572082', 15: 'entry.1062517478',
+      16: 'entry.1187095218', 17: 'entry.1557776103', 18: 'entry.1552978670', 19: 'entry.19578391', 20: 'entry.523311605',
+      21: 'entry.1538962669', 22: 'entry.1483922759', 23: 'entry.45645361', 24: 'entry.1451160984', 25: 'entry.1373458939',
+      26: 'entry.2120013189', 27: 'entry.1303452281', 28: 'entry.50165232', 29: 'entry.240883325', 30: 'entry.1201893471',
+      31: 'entry.882640380', 32: 'entry.141086092', 33: 'entry.1494592236', 34: 'entry.411324695', 35: 'entry.470867287',
+      36: 'entry.1078632822', 37: 'entry.1133957921', 38: 'entry.1145582191', 39: 'entry.1932481296', 40: 'entry.1943447158',
+      41: 'entry.726853438', 42: 'entry.1599590245', 43: 'entry.2085314761', 44: 'entry.522745442', 45: 'entry.885137032',
+      46: 'entry.1350016819'
+    };
+
+    const LIKERT_STATEMENTS = [
+      "I have a clear understanding of who I truly am beyond social media personas",
+      "I feel authentic and genuine in my daily interactions with others",
+      "My online persona accurately reflects my true values and beliefs",
+      "I am aware of my core strengths and weaknesses",
+      "I feel disconnected from my true self when using social media",
+      "I make decisions based on my personal values rather than external pressure",
+      "I struggle to identify my genuine interests versus what I think I should like",
+      "I feel confident expressing my authentic opinions, even if they are unpopular",
+      "I understand what truly motivates me in my personal and academic life",
+      "I feel pressure to maintain a curated image on social media",
+      "I spend significant time curating my social media content",
+      "I experience anxiety when my posts don't receive expected engagement",
+      "I compare my life to others' social media presentations",
+      "Social media use interferes with my focus on academic tasks",
+      "I feel FOMO (Fear of Missing Out) when not checking social media",
+      "I modify my behavior based on what I think will get likes or comments",
+      "I feel more confident when receiving social validation online",
+      "I use social media to escape from uncomfortable emotions",
+      "My daily mood is affected by my social media interactions",
+      "I have experienced stress due to cyberbullying or negative comments",
+      "I am motivated by the desire to learn and grow personally",
+      "I pursue my academic goals because they align with my values",
+      "I would continue my studies even without grades or external rewards",
+      "I feel a sense of purpose in my current pursuits",
+      "I am driven by internal satisfaction rather than external recognition",
+      "I find my academic work meaningful and worthwhile",
+      "I set my own goals rather than following what others expect",
+      "I feel intrinsically motivated to achieve excellence",
+      "My motivation comes from personal interest, not external pressure",
+      "I feel energized when working on tasks aligned with my authentic interests"
+    ];
+
+    const App = () => {
+      const [step, setStep] = useState(0); 
+      const [answers, setAnswers] = useState({});
+      const [submitting, setSubmitting] = useState(false);
+      const formRef = useRef(null);
+
+      const updateAnswer = (qId, val, advance = true) => {
+        setAnswers(prev => ({ ...prev, [qId]: val }));
+        if (advance) {
+          setTimeout(() => setStep(s => s + 1), 400);
+        }
+      };
+
+      const submitReal = () => {
+        setSubmitting(true);
+        // We use the hidden form submission via iframe trick for max compatibility
+        if (formRef.current) {
+          formRef.current.submit();
+          // After a short delay, we assume it went through (since mode: no-cors is opaque anyway)
+          setTimeout(() => {
+            setStep(47);
+            setSubmitting(false);
+          }, 1500);
+        }
+      };
+
+      const downloadRowWise = () => {
+        const sortedKeys = Object.keys(ENTRY_MAP).sort((a,b) => a-b);
+        const headers = sortedKeys.map(k => `Q${k}`).join(",");
+        const rowData = sortedKeys.map(k => `"${(answers[k] || "").toString().replace(/"/g, '""')}"`).join(",");
+        const csvContent = "data:text/csv;charset=utf-8," + headers + "\n" + rowData;
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Research_Data_${Date.now()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+
+      // PROGRESS
+      const progress = (step / 46) * 100;
+
+      // START SCREEN
+      if (step === 0) {
+        return (
+          <div className="h-screen w-screen flex flex-col items-center justify-center animate-in p-6">
+            <div className="max-w-2xl bg-slate-900/40 p-16 rounded-[4rem] border border-blue-500/10 backdrop-blur-3xl text-center shadow-2xl">
+              <h1 className="text-6xl md:text-8xl font-black text-white mb-4 tracking-tighter">SATM <span className="blue-accent">SURVEY</span></h1>
+              <p className="text-xl text-slate-400 font-light mb-12 italic opacity-80">Self-Authentication Theory of Motivation Study</p>
+              <button 
+                onClick={() => setStep(1)}
+                className="group relative px-16 py-6 bg-blue-600 text-white rounded-[2rem] font-black text-3xl transition-all hover:scale-110 active:scale-95 glow-blue btn-shadow"
+              >
+                BEGIN
+              </button>
+            </div>
+            <footer className="fixed bottom-10 text-slate-800 text-[10px] font-black tracking-[1.5em] uppercase">@ST-Research-Team</footer>
+          </div>
+        );
+      }
+
+      // SUCCESS SCREEN
+      if (step === 47) {
+        return (
+          <div className="h-screen w-screen flex flex-col items-center justify-center animate-in p-6">
+            <div className="max-w-md w-full bg-slate-900/60 p-12 rounded-[3.5rem] border border-blue-500/20 text-center shadow-2xl backdrop-blur-xl">
+              <div className="w-24 h-24 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-10 shadow-inner">
+                 <svg className="w-12 h-12 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7"/></svg>
+              </div>
+              <h2 className="text-4xl font-black text-white mb-4 tracking-tight">FINISHED!</h2>
+              <p className="text-slate-400 mb-12 text-lg font-medium">Data sent successfully. Thank you.</p>
+              <div className="space-y-4">
+                <button onClick={downloadRowWise} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xl hover:bg-blue-500 transition-all glow-blue">DOWNLOAD DATA (ROW)</button>
+                <div className="h-px bg-slate-800 w-1/3 mx-auto"></div>
+                <a href={MANUAL_URL} target="_blank" className="block text-blue-400 font-bold hover:text-blue-300 transition-colors py-2 tracking-wide">Manual Form Link</a>
+              </div>
+            </div>
+            <footer className="fixed bottom-10 text-slate-800 text-[10px] font-black tracking-[1.5em] uppercase">@ST-Research-Team</footer>
+          </div>
+        );
+      }
+
+      // SURVEY STEP RENDER
+      return (
+        <div className="h-screen w-screen flex flex-col bg-slate-950 text-slate-100 no-scrollbar overflow-y-auto">
+          {/* Top Progress Bar */}
+          <div className="fixed top-0 left-0 w-full h-2 bg-slate-900 z-50">
+            <div className="h-full bg-blue-600 transition-all duration-700 ease-out glow-blue" style={{ width: `${progress}%` }}></div>
+          </div>
+
+          <main className="flex-1 flex items-center justify-center p-4 py-20">
+            <div key={step} className="max-w-xl w-full bg-slate-900/30 border border-blue-500/10 p-10 md:p-14 rounded-[4rem] shadow-2xl animate-in backdrop-blur-2xl relative">
+              
+              <div className="flex items-center justify-between mb-12">
+                 <div className="flex items-center gap-5">
+                    <span className="w-16 h-16 bg-blue-600 text-white rounded-[1.5rem] flex items-center justify-center font-black text-2xl shadow-xl shadow-blue-600/30">{step}</span>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500/60">Progress</span>
+                      <span className="text-sm font-bold text-slate-500">{Math.round(progress)}% Complete</span>
+                    </div>
+                 </div>
+              </div>
+
+              {/* Step Logic */}
+              <div className="min-h-[300px]">
+                {step <= 5 ? (
+                  <div className="space-y-8">
+                    <h2 className="text-3xl font-black text-white leading-tight">{
+                      step === 1 ? "Age Range?" : step === 2 ? "Gender?" : step === 3 ? "Academic Level?" : step === 4 ? "Field of Study?" : "Social Media Use (Years)?"
+                    }</h2>
+                    <div className="grid gap-3">
+                      {(step === 1 ? ['18-20', '21-23', '24-26', '27-30', 'Above 30'] :
+                        step === 2 ? ['Male', 'Female', 'Non-binary', 'Prefer not to say'] :
+                        step === 3 ? ['Undergraduate', 'Postgraduate', 'Doctoral'] :
+                        step === 4 ? ['Management', 'Engineering', 'Sciences', 'Arts & Humanities'] :
+                        ['< 2 years', '2-5 years', '5-10 years', '10+ years']).map(o => (
+                          <OptionBtn key={o} active={answers[step] === o} onClick={() => updateAnswer(step, o)}>{o}</OptionBtn>
+                        ))}
+                    </div>
+                  </div>
+                ) : step <= 35 ? (
+                  <div className="space-y-12">
+                    <h2 className="text-2xl md:text-3xl font-bold text-white leading-relaxed">{LIKERT_STATEMENTS[step-6]}</h2>
+                    <div className="flex justify-between gap-2 md:gap-5 bg-slate-950 p-4 rounded-[2.5rem] border border-blue-900/30">
+                      {['1', '2', '3', '4', '5'].map(v => (
+                        <button 
+                          key={v}
+                          onClick={() => updateAnswer(step, v)}
+                          className={`flex-1 h-20 rounded-[1.8rem] font-black text-3xl transition-all duration-300 ${
+                            answers[step] === v ? 'bg-blue-600 text-white scale-110 glow-blue z-10' : 'text-slate-600 hover:text-blue-500'
+                          }`}
+                        >
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex justify-between px-6 text-[10px] uppercase font-black tracking-widest text-slate-600">
+                      <span>Strongly Disagree</span>
+                      <span>Strongly Agree</span>
+                    </div>
+                  </div>
+                ) : step <= 40 ? (
+                  <div className="space-y-8">
+                    <h2 className="text-3xl font-black text-white">{
+                      step === 36 ? "Intentional breaks frequency?" : step === 37 ? "Device-free zones usage?" : step === 38 ? "Motivation improvements noticed?" : step === 39 ? "Reconnection activities?" : "Digital wellness rating?"
+                    }</h2>
+                    <div className="grid gap-3">
+                      {(step === 36 ? ['Daily', 'Often', 'Weekly', 'Rarely', 'Never'] :
+                        step === 37 ? ['Regularly', 'Occasionally', 'Rarely', 'Never'] :
+                        step === 38 ? ['Significant', 'Minor', 'No change', 'Worsened'] :
+                        step === 39 ? ['Meditation', 'Exercise', 'Hobbies', 'Reading', 'Journaling', 'Offline Social'] :
+                        ['Poor', 'Fair', 'Good', 'Very Good', 'Excellent']).map(o => (
+                          <OptionBtn 
+                            key={o} 
+                            active={step === 39 ? (answers[39] || "").includes(o) : answers[step] === o} 
+                            onClick={() => {
+                              if (step === 39) {
+                                let cur = answers[39] || "";
+                                let next = cur.includes(o) ? cur.replace(o, "").trim() : (cur + " " + o).trim();
+                                updateAnswer(39, next, false);
+                              } else {
+                                updateAnswer(step, o);
+                              }
+                            }}
+                          >
+                            {o}
+                          </OptionBtn>
+                        ))}
+                      {step === 39 && <button onClick={() => setStep(40)} className="mt-6 py-5 bg-blue-600 text-white rounded-3xl font-black">CONTINUE</button>}
+                    </div>
+                  </div>
+                ) : step <= 45 ? (
+                  <div className="space-y-8">
+                    <h2 className="text-3xl font-black text-white">{
+                      step === 41 ? "Online presence vs Authentic self?" : step === 42 ? "Personal strategies for authenticity?" : step === 43 ? "Digital impact on academics?" : step === 44 ? "Challenge in staying authentic?" : "Advice for others?"
+                    }</h2>
+                    <textarea 
+                      className="w-full h-56 bg-slate-950 border border-blue-900/30 rounded-[2.5rem] p-8 text-slate-200 text-lg focus:ring-4 focus:ring-blue-600/20 focus:border-blue-600 transition-all outline-none resize-none"
+                      placeholder="Share your thoughts..."
+                      value={answers[step] || ""}
+                      onChange={(e) => updateAnswer(step, e.target.value, false)}
+                    />
+                    <button onClick={() => setStep(s => s + 1)} className="w-full py-6 bg-blue-600 text-white rounded-3xl font-black text-2xl active:scale-95 shadow-xl shadow-blue-600/30">CONTINUE</button>
+                  </div>
+                ) : (
+                  <div className="text-center space-y-12">
+                    <h2 className="text-4xl font-black text-white tracking-tighter">FINAL CONSENT</h2>
+                    <p className="text-slate-400 text-lg leading-relaxed italic opacity-70">"I agree that my anonymized responses will be used for research purposes."</p>
+                    <OptionBtn active={answers[46] === 'Yes'} onClick={() => updateAnswer(46, 'Yes', false)}>I CONSENT & AGREE</OptionBtn>
+                    <button 
+                      onClick={submitReal}
+                      disabled={submitting || answers[46] !== 'Yes'}
+                      className={`w-full py-7 rounded-[2.5rem] font-black text-3xl transition-all ${answers[46] === 'Yes' && !submitting ? 'bg-white text-blue-600 scale-105 glow-blue' : 'bg-slate-800 text-slate-600 cursor-not-allowed'}`}
+                    >
+                      {submitting ? 'TRANSMITTING...' : 'FINISH SURVEY'}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Bottom Navigation */}
+              <div className="mt-16 flex justify-between items-center pt-8 border-t border-slate-800/50">
+                <button onClick={() => setStep(s => Math.max(0, s - 1))} className="text-slate-600 hover:text-blue-500 font-black text-xs uppercase tracking-[0.4em] flex items-center gap-2 transition-all">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg> Back
+                </button>
+                <button onClick={downloadRowWise} className="text-slate-800 hover:text-slate-500 transition-colors">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" strokeWidth="2"/></svg>
+                </button>
+              </div>
+            </div>
+          </main>
+
+          <footer className="py-10 text-center">
+            <p className="text-slate-800 text-[10px] font-black uppercase tracking-[1.5em]">@ST-Research-Team</p>
+          </footer>
+
+          {/* HIDDEN SUBMISSION FORM FOR RELIABILITY */}
+          <div className="hidden">
+            <iframe name="hidden_iframe" id="hidden_iframe" style={{display: 'none'}}></iframe>
+            <form 
+              ref={formRef} 
+              action={FORM_ACTION_URL} 
+              method="POST" 
+              target="hidden_iframe"
+            >
+              {Object.keys(ENTRY_MAP).map(key => (
+                <input key={key} type="hidden" name={ENTRY_MAP[key]} value={answers[key] || ""} />
+              ))}
+            </form>
+          </div>
+        </div>
+      );
+    };
+
+    const OptionBtn = ({ children, active, onClick }) => (
+      <button 
+        onClick={onClick}
+        className={`w-full py-6 px-10 rounded-[2rem] text-left font-bold transition-all duration-300 border-2 flex items-center justify-between group ${
+          active 
+          ? 'bg-blue-600 border-blue-400 text-white scale-[1.03] glow-blue ring-4 ring-blue-500/10' 
+          : 'bg-slate-950/50 border-blue-900/10 text-slate-400 hover:border-blue-600/40 hover:bg-slate-900'
+        }`}
+      >
+        <span className="text-lg tracking-tight">{children}</span>
+        {active && <svg className="w-7 h-7 animate-in" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" /></svg>}
+      </button>
+    );
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
