@@ -3,68 +3,66 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SATM Research Portal</title>
+  <title>SATM Research System | ST-Research-Team</title>
   
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Inter Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap" rel="stylesheet">
   
-  <!-- React & Babel -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
+    :root {
+      --bg-color: #020617;
+      --accent-blue: #2563eb;
+      --glass: rgba(15, 23, 42, 0.8);
+    }
     body {
       font-family: 'Inter', sans-serif;
-      background-color: #020617; /* slate-950 */
-      color: #e2e8f0; /* slate-200 */
-      overflow: hidden;
+      background-color: var(--bg-color);
+      color: #f1f5f9;
       margin: 0;
+      overflow-x: hidden;
     }
-    .glow-blue {
-      box-shadow: 0 0 30px 5px rgba(37, 99, 235, 0.4);
+    .blue-glow {
+      box-shadow: 0 0 40px 10px rgba(37, 99, 235, 0.3);
     }
-    .animate-in {
-      animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    .neon-text {
+      text-shadow: 0 0 10px rgba(37, 99, 235, 0.8);
+    }
+    .animate-slide-up {
+      animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     @keyframes slideUp {
-      from { opacity: 0; transform: translateY(30px); }
+      from { opacity: 0; transform: translateY(40px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    .bg-grid {
-      background-image: radial-gradient(circle at center, #1e293b 0.5px, transparent 0.5px);
-      background-size: 30px 30px;
+    .bg-pattern {
+      background-image: radial-gradient(circle at 2px 2px, #1e293b 1px, transparent 0);
+      background-size: 40px 40px;
     }
-    .blue-accent {
-      color: #3b82f6;
+    .option-pill:hover {
+      background: rgba(37, 99, 235, 0.1);
+      border-color: rgba(37, 99, 235, 0.5);
     }
-    .btn-shadow {
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+    textarea:focus {
+      box-shadow: 0 0 20px 2px rgba(37, 99, 235, 0.2);
     }
-    /* Hide scrollbar but keep functionality */
     .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-    /* For smooth step transitions */
-    .step-exit { opacity: 0; transform: translateX(-20px); transition: all 0.3s ease; }
-    .step-enter { opacity: 0; transform: translateX(20px); transition: all 0.3s ease; }
-    .step-active { opacity: 1; transform: translateX(0); }
   </style>
 </head>
-<body class="bg-grid">
+<body class="bg-pattern">
   <div id="root"></div>
 
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    const FORM_ACTION_URL = "https://docs.google.com/forms/d/e/1FAIpQLSe5QizV-hupWjb6GnBOxOZaMMs9z7b3n-N327oeTp9YblPqOQ/formResponse";
-    const MANUAL_URL = "https://docs.google.com/forms/d/e/1FAIpQLSe5QizV-hupWjb6GnBOxOZaMMs9z7b3n-N327oeTp9YblPqOQ/viewform?usp=header";
-
+    const TARGET_EMAIL = "chicken.dinner5795@gmail.com";
+    const GOOGLE_FORM_ACTION = "https://docs.google.com/forms/d/e/1FAIpQLSe5QizV-hupWjb6GnBOxOZaMMs9z7b3n-N327oeTp9YblPqOQ/formResponse";
+    
     const ENTRY_MAP = {
       1: 'entry.1071290361', 2: 'entry.326184573', 3: 'entry.1061016185', 4: 'entry.1666183569', 5: 'entry.1443380532',
       6: 'entry.1618713911', 7: 'entry.1129971170', 8: 'entry.314606889', 9: 'entry.1660632923', 10: 'entry.1145664182',
@@ -78,7 +76,7 @@
       46: 'entry.1350016819'
     };
 
-    const LIKERT_STATEMENTS = [
+    const LIKERT_PROMPTS = [
       "I have a clear understanding of who I truly am beyond social media personas",
       "I feel authentic and genuine in my daily interactions with others",
       "My online persona accurately reflects my true values and beliefs",
@@ -113,234 +111,233 @@
 
     const App = () => {
       const [step, setStep] = useState(0); 
-      const [answers, setAnswers] = useState({});
-      const [submitting, setSubmitting] = useState(false);
+      const [data, setData] = useState({});
+      const [loading, setLoading] = useState(false);
       const formRef = useRef(null);
 
-      const updateAnswer = (qId, val, advance = true) => {
-        setAnswers(prev => ({ ...prev, [qId]: val }));
-        if (advance) {
-          setTimeout(() => setStep(s => s + 1), 400);
+      const handleResponse = (q, val, auto = true) => {
+        setData(prev => ({ ...prev, [q]: val }));
+        if (auto) {
+          setTimeout(() => setStep(s => s + 1), 350);
         }
       };
 
-      const submitReal = () => {
-        setSubmitting(true);
-        // We use the hidden form submission via iframe trick for max compatibility
+      const executeSubmission = () => {
+        setLoading(true);
         if (formRef.current) {
-          formRef.current.submit();
-          // After a short delay, we assume it went through (since mode: no-cors is opaque anyway)
+          formRef.current.submit(); // Submit via hidden iframe
           setTimeout(() => {
+            setLoading(false);
             setStep(47);
-            setSubmitting(false);
-          }, 1500);
+          }, 2000);
         }
       };
 
-      const downloadRowWise = () => {
-        const sortedKeys = Object.keys(ENTRY_MAP).sort((a,b) => a-b);
-        const headers = sortedKeys.map(k => `Q${k}`).join(",");
-        const rowData = sortedKeys.map(k => `"${(answers[k] || "").toString().replace(/"/g, '""')}"`).join(",");
-        const csvContent = "data:text/csv;charset=utf-8," + headers + "\n" + rowData;
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `Research_Data_${Date.now()}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      const downloadExcel = () => {
+        const headers = Object.keys(ENTRY_MAP).sort((a,b) => a-b).map(k => `Q${k}`).join(",");
+        const values = Object.keys(ENTRY_MAP).sort((a,b) => a-b).map(k => `"${(data[k] || "").toString().replace(/"/g, '""')}"`).join(",");
+        const csv = headers + "\n" + values;
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `SATM_Research_Result_${Date.now()}.csv`;
+        a.click();
       };
 
-      // PROGRESS
-      const progress = (step / 46) * 100;
+      const emailBackup = () => {
+        const sortedData = Object.keys(ENTRY_MAP).sort((a,b)=>a-b).map(k => `Q${k}: ${data[k]}`).join("\n");
+        const body = `Research Response Data:\n\n${sortedData}`;
+        window.location.href = `mailto:${TARGET_EMAIL}?subject=SATM Research Response&body=${encodeURIComponent(body)}`;
+      };
 
-      // START SCREEN
+      // RENDERERS
       if (step === 0) {
         return (
-          <div className="h-screen w-screen flex flex-col items-center justify-center animate-in p-6">
-            <div className="max-w-2xl bg-slate-900/40 p-16 rounded-[4rem] border border-blue-500/10 backdrop-blur-3xl text-center shadow-2xl">
-              <h1 className="text-6xl md:text-8xl font-black text-white mb-4 tracking-tighter">SATM <span className="blue-accent">SURVEY</span></h1>
-              <p className="text-xl text-slate-400 font-light mb-12 italic opacity-80">Self-Authentication Theory of Motivation Study</p>
-              <button 
-                onClick={() => setStep(1)}
-                className="group relative px-16 py-6 bg-blue-600 text-white rounded-[2rem] font-black text-3xl transition-all hover:scale-110 active:scale-95 glow-blue btn-shadow"
-              >
-                BEGIN
-              </button>
+          <div className="h-screen flex flex-col items-center justify-center p-6 text-center animate-slide-up">
+            <div className="max-w-3xl bg-slate-900/60 p-12 md:p-20 rounded-[4rem] border border-blue-500/10 backdrop-blur-3xl shadow-2xl relative overflow-hidden">
+               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-600 to-transparent opacity-50"></div>
+               <h1 className="text-6xl md:text-8xl font-black mb-6 tracking-tighter">SATM <span className="text-blue-600 neon-text">PORTAL</span></h1>
+               <p className="text-xl text-slate-400 font-light mb-12 italic">Self-Authentication Theory of Motivation Survey</p>
+               <button 
+                  onClick={() => setStep(1)}
+                  className="px-16 py-7 bg-blue-600 text-white rounded-[2.5rem] font-black text-3xl transition-all hover:scale-110 hover:bg-blue-500 active:scale-95 blue-glow"
+               >
+                 ENTER SYSTEM
+               </button>
             </div>
             <footer className="fixed bottom-10 text-slate-800 text-[10px] font-black tracking-[1.5em] uppercase">@ST-Research-Team</footer>
           </div>
         );
       }
 
-      // SUCCESS SCREEN
       if (step === 47) {
         return (
-          <div className="h-screen w-screen flex flex-col items-center justify-center animate-in p-6">
-            <div className="max-w-md w-full bg-slate-900/60 p-12 rounded-[3.5rem] border border-blue-500/20 text-center shadow-2xl backdrop-blur-xl">
-              <div className="w-24 h-24 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-10 shadow-inner">
-                 <svg className="w-12 h-12 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7"/></svg>
-              </div>
-              <h2 className="text-4xl font-black text-white mb-4 tracking-tight">FINISHED!</h2>
-              <p className="text-slate-400 mb-12 text-lg font-medium">Data sent successfully. Thank you.</p>
-              <div className="space-y-4">
-                <button onClick={downloadRowWise} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xl hover:bg-blue-500 transition-all glow-blue">DOWNLOAD DATA (ROW)</button>
-                <div className="h-px bg-slate-800 w-1/3 mx-auto"></div>
-                <a href={MANUAL_URL} target="_blank" className="block text-blue-400 font-bold hover:text-blue-300 transition-colors py-2 tracking-wide">Manual Form Link</a>
-              </div>
-            </div>
-            <footer className="fixed bottom-10 text-slate-800 text-[10px] font-black tracking-[1.5em] uppercase">@ST-Research-Team</footer>
+          <div className="h-screen flex flex-col items-center justify-center p-6 animate-slide-up">
+             <div className="max-w-xl w-full bg-slate-900/80 p-12 rounded-[4rem] border border-blue-500/20 text-center shadow-2xl backdrop-blur-2xl">
+                <div className="w-24 h-24 bg-blue-600/10 rounded-full flex items-center justify-center mx-auto mb-10 border border-blue-500/20 shadow-inner">
+                   <svg className="w-12 h-12 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7"/></svg>
+                </div>
+                <h2 className="text-5xl font-black text-white mb-6 tracking-tight">MISSION COMPLETE</h2>
+                <p className="text-slate-400 mb-12 text-lg">Your data has been transmitted and processed.</p>
+                <div className="grid gap-4">
+                   <button onClick={downloadExcel} className="py-5 bg-blue-600 text-white rounded-3xl font-black text-xl transition-all hover:bg-blue-500 shadow-xl shadow-blue-600/20">DOWNLOAD EXCEL (ROW)</button>
+                   <button onClick={emailBackup} className="py-5 bg-slate-800 text-slate-300 rounded-3xl font-bold border border-slate-700 hover:bg-slate-700">SEND DIRECT EMAIL BACKUP</button>
+                   <a href={GOOGLE_FORM_ACTION.replace('formResponse', 'viewform')} target="_blank" className="text-blue-500 font-black text-sm uppercase tracking-widest mt-4 hover:underline">Manual Verification link</a>
+                </div>
+             </div>
+             <footer className="fixed bottom-10 text-slate-800 text-[10px] font-black tracking-[1.5em] uppercase">@ST-Research-Team</footer>
           </div>
         );
       }
 
-      // SURVEY STEP RENDER
       return (
-        <div className="h-screen w-screen flex flex-col bg-slate-950 text-slate-100 no-scrollbar overflow-y-auto">
-          {/* Top Progress Bar */}
-          <div className="fixed top-0 left-0 w-full h-2 bg-slate-900 z-50">
-            <div className="h-full bg-blue-600 transition-all duration-700 ease-out glow-blue" style={{ width: `${progress}%` }}></div>
+        <div className="min-h-screen flex flex-col no-scrollbar overflow-y-auto">
+          {/* Progress Bar */}
+          <div className="fixed top-0 left-0 w-full h-1.5 bg-slate-900 z-50">
+            <div className="h-full bg-blue-600 transition-all duration-700 ease-out blue-glow shadow-[0_0_20px_#2563eb]" style={{ width: `${(step/46)*100}%` }}></div>
           </div>
 
-          <main className="flex-1 flex items-center justify-center p-4 py-20">
-            <div key={step} className="max-w-xl w-full bg-slate-900/30 border border-blue-500/10 p-10 md:p-14 rounded-[4rem] shadow-2xl animate-in backdrop-blur-2xl relative">
-              
-              <div className="flex items-center justify-between mb-12">
-                 <div className="flex items-center gap-5">
-                    <span className="w-16 h-16 bg-blue-600 text-white rounded-[1.5rem] flex items-center justify-center font-black text-2xl shadow-xl shadow-blue-600/30">{step}</span>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500/60">Progress</span>
-                      <span className="text-sm font-bold text-slate-500">{Math.round(progress)}% Complete</span>
-                    </div>
-                 </div>
-              </div>
+          <main className="flex-1 flex items-center justify-center p-6 py-24">
+             <div key={step} className="max-w-2xl w-full bg-slate-900/40 border border-blue-500/10 p-10 md:p-16 rounded-[4.5rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.7)] animate-slide-up backdrop-blur-3xl relative overflow-hidden">
+                
+                <div className="flex items-center gap-6 mb-12">
+                   <span className="w-16 h-16 bg-blue-600 text-white rounded-3xl flex items-center justify-center font-black text-3xl shadow-2xl shadow-blue-600/30">{step}</span>
+                   <div className="flex flex-col">
+                      <span className="text-[10px] font-black uppercase tracking-[0.5em] text-blue-500/50">Question Block</span>
+                      <span className="text-sm font-bold text-slate-600 tracking-widest">{Math.round((step/46)*100)}% THROUGH</span>
+                   </div>
+                </div>
 
-              {/* Step Logic */}
-              <div className="min-h-[300px]">
-                {step <= 5 ? (
-                  <div className="space-y-8">
-                    <h2 className="text-3xl font-black text-white leading-tight">{
-                      step === 1 ? "Age Range?" : step === 2 ? "Gender?" : step === 3 ? "Academic Level?" : step === 4 ? "Field of Study?" : "Social Media Use (Years)?"
-                    }</h2>
-                    <div className="grid gap-3">
-                      {(step === 1 ? ['18-20', '21-23', '24-26', '27-30', 'Above 30'] :
-                        step === 2 ? ['Male', 'Female', 'Non-binary', 'Prefer not to say'] :
-                        step === 3 ? ['Undergraduate', 'Postgraduate', 'Doctoral'] :
-                        step === 4 ? ['Management', 'Engineering', 'Sciences', 'Arts & Humanities'] :
-                        ['< 2 years', '2-5 years', '5-10 years', '10+ years']).map(o => (
-                          <OptionBtn key={o} active={answers[step] === o} onClick={() => updateAnswer(step, o)}>{o}</OptionBtn>
-                        ))}
-                    </div>
-                  </div>
-                ) : step <= 35 ? (
-                  <div className="space-y-12">
-                    <h2 className="text-2xl md:text-3xl font-bold text-white leading-relaxed">{LIKERT_STATEMENTS[step-6]}</h2>
-                    <div className="flex justify-between gap-2 md:gap-5 bg-slate-950 p-4 rounded-[2.5rem] border border-blue-900/30">
-                      {['1', '2', '3', '4', '5'].map(v => (
+                <div className="min-h-[340px]">
+                   {step <= 5 ? (
+                     <div className="space-y-10">
+                        <h2 className="text-4xl font-black text-white leading-tight">{
+                          step === 1 ? "AGE GROUP" : step === 2 ? "GENDER" : step === 3 ? "ACADEMIC RANK" : step === 4 ? "FIELD OF STUDY" : "SOCIAL MEDIA TENURE"
+                        }</h2>
+                        <div className="grid gap-3">
+                          {(step === 1 ? ['18-20', '21-23', '24-26', '27-30', 'Above 30'] :
+                            step === 2 ? ['Male', 'Female', 'Non-binary', 'Prefer not to say'] :
+                            step === 3 ? ['Undergraduate', 'Postgraduate', 'Doctoral'] :
+                            step === 4 ? ['Management', 'Engineering', 'Sciences', 'Arts & Humanities'] :
+                            ['< 2 years', '2-5 years', '5-10 years', '10+ years']).map(opt => (
+                              <OptionBtn key={opt} active={data[step] === opt} onClick={() => handleResponse(step, opt)}>{opt}</OptionBtn>
+                            ))}
+                        </div>
+                     </div>
+                   ) : step <= 35 ? (
+                     <div className="space-y-12">
+                        <h2 className="text-2xl md:text-3xl font-bold text-slate-100 leading-relaxed italic border-l-4 border-blue-600 pl-6">{LIKERT_PROMPTS[step-6]}</h2>
+                        <div>
+                          <div className="flex justify-between gap-2 md:gap-5 bg-slate-950 p-4 rounded-[2.8rem] border border-blue-900/40">
+                            {['1', '2', '3', '4', '5'].map(v => (
+                              <button 
+                                key={v}
+                                onClick={() => handleResponse(step, v)}
+                                className={`flex-1 h-20 rounded-3xl font-black text-3xl transition-all duration-300 ${
+                                  data[step] === v ? 'bg-blue-600 text-white scale-110 blue-glow z-10' : 'text-slate-700 hover:text-blue-500 hover:bg-blue-500/5'
+                                }`}
+                              >
+                                {v}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="flex justify-between mt-8 px-8 text-[10px] uppercase font-black tracking-[0.4em] text-slate-700">
+                            <span>Strongly Disagree</span>
+                            <span>Strongly Agree</span>
+                          </div>
+                        </div>
+                     </div>
+                   ) : step <= 40 ? (
+                     <div className="space-y-10">
+                        <h2 className="text-3xl font-black text-white leading-tight">{
+                          step === 36 ? "intentional social media breaks?" : step === 37 ? "device-free zones?" : step === 38 ? "motivation after reducing use?" : step === 39 ? "activities to reconnect?" : "digital wellness rating?"
+                        }</h2>
+                        <div className="grid gap-3">
+                          {(step === 36 ? ['Daily', 'Often', 'Weekly', 'Rarely', 'Never'] :
+                            step === 37 ? ['Regularly', 'Occasionally', 'Rarely', 'Never'] :
+                            step === 38 ? ['Significant', 'Minor', 'No change', 'Worsened'] :
+                            step === 39 ? ['Meditation', 'Exercise', 'Hobbies', 'Reading', 'Journaling', 'Offline Social'] :
+                            ['Poor', 'Fair', 'Good', 'Very Good', 'Excellent']).map(opt => (
+                              <OptionBtn 
+                                key={opt} 
+                                active={step === 39 ? (data[39] || "").includes(opt) : data[step] === opt} 
+                                onClick={() => {
+                                  if (step === 39) {
+                                    let c = data[39] || "";
+                                    let n = c.includes(opt) ? c.replace(opt, "").trim() : (c + " " + opt).trim();
+                                    handleResponse(39, n.trim(), false);
+                                  } else {
+                                    handleResponse(step, opt);
+                                  }
+                                }}
+                              >
+                                {opt}
+                              </OptionBtn>
+                            ))}
+                          {step === 39 && <button onClick={() => setStep(40)} className="mt-8 py-6 bg-blue-600 text-white rounded-[2rem] font-black text-xl hover:bg-blue-500 active:scale-95 shadow-xl shadow-blue-600/20">CONTINUE</button>}
+                        </div>
+                     </div>
+                   ) : step <= 45 ? (
+                     <div className="space-y-10">
+                        <h2 className="text-3xl font-black text-white leading-tight italic">{
+                          step === 41 ? "Online presence vs Authentic self?" : step === 42 ? "Personal strategies for authenticity?" : step === 43 ? "Digital impact on academics?" : step === 44 ? "Challenge in staying authentic?" : "Final advice for peers?"
+                        }</h2>
+                        <textarea 
+                          className="w-full h-60 bg-slate-950 border-2 border-blue-900/30 rounded-[2.5rem] p-10 text-slate-200 text-xl focus:border-blue-600 transition-all outline-none resize-none shadow-inner"
+                          placeholder="Type your reflection here..."
+                          value={data[step] || ""}
+                          onChange={(e) => handleResponse(step, e.target.value, false)}
+                        />
+                        <button onClick={() => setStep(s => s + 1)} className="w-full py-7 bg-blue-600 text-white rounded-[2rem] font-black text-2xl hover:bg-blue-500 active:scale-95 shadow-2xl shadow-blue-600/30 transition-all">NEXT QUESTION</button>
+                     </div>
+                   ) : (
+                     <div className="text-center space-y-14">
+                        <h2 className="text-5xl font-black text-white tracking-tighter">CERTIFY DATA</h2>
+                        <p className="text-slate-500 text-xl font-light italic leading-relaxed max-w-sm mx-auto">"I certify that my responses are true and I consent to their use for ST-Research-Team analytics."</p>
+                        <div className="max-w-xs mx-auto">
+                           <OptionBtn active={data[46] === 'Yes'} onClick={() => handleResponse(46, 'Yes', false)}>I FULLY CONSENT</OptionBtn>
+                        </div>
                         <button 
-                          key={v}
-                          onClick={() => updateAnswer(step, v)}
-                          className={`flex-1 h-20 rounded-[1.8rem] font-black text-3xl transition-all duration-300 ${
-                            answers[step] === v ? 'bg-blue-600 text-white scale-110 glow-blue z-10' : 'text-slate-600 hover:text-blue-500'
-                          }`}
+                          onClick={executeSubmission}
+                          disabled={loading || data[46] !== 'Yes'}
+                          className={`w-full py-8 rounded-[2.8rem] font-black text-4xl tracking-tighter transition-all ${data[46] === 'Yes' && !loading ? 'bg-white text-blue-600 scale-105 blue-glow' : 'bg-slate-800 text-slate-600 cursor-not-allowed'}`}
                         >
-                          {v}
+                          {loading ? 'UPLOADING...' : 'FINAL SUBMISSION'}
                         </button>
-                      ))}
-                    </div>
-                    <div className="flex justify-between px-6 text-[10px] uppercase font-black tracking-widest text-slate-600">
-                      <span>Strongly Disagree</span>
-                      <span>Strongly Agree</span>
-                    </div>
-                  </div>
-                ) : step <= 40 ? (
-                  <div className="space-y-8">
-                    <h2 className="text-3xl font-black text-white">{
-                      step === 36 ? "Intentional breaks frequency?" : step === 37 ? "Device-free zones usage?" : step === 38 ? "Motivation improvements noticed?" : step === 39 ? "Reconnection activities?" : "Digital wellness rating?"
-                    }</h2>
-                    <div className="grid gap-3">
-                      {(step === 36 ? ['Daily', 'Often', 'Weekly', 'Rarely', 'Never'] :
-                        step === 37 ? ['Regularly', 'Occasionally', 'Rarely', 'Never'] :
-                        step === 38 ? ['Significant', 'Minor', 'No change', 'Worsened'] :
-                        step === 39 ? ['Meditation', 'Exercise', 'Hobbies', 'Reading', 'Journaling', 'Offline Social'] :
-                        ['Poor', 'Fair', 'Good', 'Very Good', 'Excellent']).map(o => (
-                          <OptionBtn 
-                            key={o} 
-                            active={step === 39 ? (answers[39] || "").includes(o) : answers[step] === o} 
-                            onClick={() => {
-                              if (step === 39) {
-                                let cur = answers[39] || "";
-                                let next = cur.includes(o) ? cur.replace(o, "").trim() : (cur + " " + o).trim();
-                                updateAnswer(39, next, false);
-                              } else {
-                                updateAnswer(step, o);
-                              }
-                            }}
-                          >
-                            {o}
-                          </OptionBtn>
-                        ))}
-                      {step === 39 && <button onClick={() => setStep(40)} className="mt-6 py-5 bg-blue-600 text-white rounded-3xl font-black">CONTINUE</button>}
-                    </div>
-                  </div>
-                ) : step <= 45 ? (
-                  <div className="space-y-8">
-                    <h2 className="text-3xl font-black text-white">{
-                      step === 41 ? "Online presence vs Authentic self?" : step === 42 ? "Personal strategies for authenticity?" : step === 43 ? "Digital impact on academics?" : step === 44 ? "Challenge in staying authentic?" : "Advice for others?"
-                    }</h2>
-                    <textarea 
-                      className="w-full h-56 bg-slate-950 border border-blue-900/30 rounded-[2.5rem] p-8 text-slate-200 text-lg focus:ring-4 focus:ring-blue-600/20 focus:border-blue-600 transition-all outline-none resize-none"
-                      placeholder="Share your thoughts..."
-                      value={answers[step] || ""}
-                      onChange={(e) => updateAnswer(step, e.target.value, false)}
-                    />
-                    <button onClick={() => setStep(s => s + 1)} className="w-full py-6 bg-blue-600 text-white rounded-3xl font-black text-2xl active:scale-95 shadow-xl shadow-blue-600/30">CONTINUE</button>
-                  </div>
-                ) : (
-                  <div className="text-center space-y-12">
-                    <h2 className="text-4xl font-black text-white tracking-tighter">FINAL CONSENT</h2>
-                    <p className="text-slate-400 text-lg leading-relaxed italic opacity-70">"I agree that my anonymized responses will be used for research purposes."</p>
-                    <OptionBtn active={answers[46] === 'Yes'} onClick={() => updateAnswer(46, 'Yes', false)}>I CONSENT & AGREE</OptionBtn>
-                    <button 
-                      onClick={submitReal}
-                      disabled={submitting || answers[46] !== 'Yes'}
-                      className={`w-full py-7 rounded-[2.5rem] font-black text-3xl transition-all ${answers[46] === 'Yes' && !submitting ? 'bg-white text-blue-600 scale-105 glow-blue' : 'bg-slate-800 text-slate-600 cursor-not-allowed'}`}
-                    >
-                      {submitting ? 'TRANSMITTING...' : 'FINISH SURVEY'}
-                    </button>
-                  </div>
-                )}
-              </div>
+                     </div>
+                   )}
+                </div>
 
-              {/* Bottom Navigation */}
-              <div className="mt-16 flex justify-between items-center pt-8 border-t border-slate-800/50">
-                <button onClick={() => setStep(s => Math.max(0, s - 1))} className="text-slate-600 hover:text-blue-500 font-black text-xs uppercase tracking-[0.4em] flex items-center gap-2 transition-all">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg> Back
-                </button>
-                <button onClick={downloadRowWise} className="text-slate-800 hover:text-slate-500 transition-colors">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" strokeWidth="2"/></svg>
-                </button>
-              </div>
-            </div>
+                {/* Foot Nav */}
+                <div className="mt-20 flex justify-between items-center pt-10 border-t border-slate-800/50">
+                   <button onClick={() => setStep(s => Math.max(0, s-1))} className="text-slate-600 hover:text-blue-500 font-black text-xs uppercase tracking-[0.5em] flex items-center gap-3 transition-colors">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg> Go Back
+                   </button>
+                   <button onClick={downloadExcel} className="text-slate-800 hover:text-blue-900 transition-colors">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                   </button>
+                </div>
+             </div>
           </main>
 
-          <footer className="py-10 text-center">
-            <p className="text-slate-800 text-[10px] font-black uppercase tracking-[1.5em]">@ST-Research-Team</p>
+          <footer className="py-12 text-center opacity-40">
+            <p className="text-slate-500 text-[10px] font-black uppercase tracking-[1.5em]">@ST-Research-Team</p>
           </footer>
 
-          {/* HIDDEN SUBMISSION FORM FOR RELIABILITY */}
+          {/* HIDDEN TRIPLE REDUNDANCY RELAY */}
           <div className="hidden">
-            <iframe name="hidden_iframe" id="hidden_iframe" style={{display: 'none'}}></iframe>
-            <form 
-              ref={formRef} 
-              action={FORM_ACTION_URL} 
-              method="POST" 
-              target="hidden_iframe"
-            >
-              {Object.keys(ENTRY_MAP).map(key => (
-                <input key={key} type="hidden" name={ENTRY_MAP[key]} value={answers[key] || ""} />
-              ))}
-            </form>
+             <iframe name="relay_target" id="relay_target"></iframe>
+             <form 
+               ref={formRef} 
+               action={GOOGLE_FORM_ACTION} 
+               method="POST" 
+               target="relay_target"
+             >
+               {Object.keys(ENTRY_MAP).map(k => (
+                 <input key={k} type="hidden" name={ENTRY_MAP[k]} value={data[k] || ""} />
+               ))}
+             </form>
           </div>
         </div>
       );
@@ -349,14 +346,14 @@
     const OptionBtn = ({ children, active, onClick }) => (
       <button 
         onClick={onClick}
-        className={`w-full py-6 px-10 rounded-[2rem] text-left font-bold transition-all duration-300 border-2 flex items-center justify-between group ${
+        className={`w-full py-6 px-10 rounded-3xl text-left font-bold transition-all duration-300 border-2 flex items-center justify-between group ${
           active 
-          ? 'bg-blue-600 border-blue-400 text-white scale-[1.03] glow-blue ring-4 ring-blue-500/10' 
-          : 'bg-slate-950/50 border-blue-900/10 text-slate-400 hover:border-blue-600/40 hover:bg-slate-900'
+          ? 'bg-blue-600 border-blue-400 text-white scale-[1.03] blue-glow z-10' 
+          : 'bg-slate-950/60 border-blue-900/10 text-slate-500 hover:border-blue-600/40 hover:bg-slate-900'
         }`}
       >
         <span className="text-lg tracking-tight">{children}</span>
-        {active && <svg className="w-7 h-7 animate-in" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" /></svg>}
+        {active && <svg className="w-8 h-8 animate-pulse" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" /></svg>}
       </button>
     );
 
